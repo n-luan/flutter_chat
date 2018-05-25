@@ -42,6 +42,7 @@ GEM
     bcrypt (3.1.12)
     builder (3.2.3)
     byebug (10.0.2)
+    coderay (1.1.2)
     concurrent-ruby (1.0.5)
     crass (1.0.4)
     devise (4.4.3)
@@ -54,6 +55,8 @@ GEM
       devise (> 3.5.2, < 4.5)
       rails (< 6)
     erubi (1.7.1)
+    faker (1.8.7)
+      i18n (>= 0.7)
     ffi (1.9.23)
     globalid (0.4.1)
       activesupport (>= 4.2.0)
@@ -77,6 +80,11 @@ GEM
     nokogiri (1.8.2)
       mini_portile2 (~> 2.3.0)
     orm_adapter (0.5.0)
+    pry (0.11.3)
+      coderay (~> 1.1.0)
+      method_source (~> 0.9.0)
+    pry-rails (0.3.6)
+      pry (>= 0.10.4)
     puma (3.11.4)
     rack (2.0.5)
     rack-test (1.0.0)
@@ -108,6 +116,7 @@ GEM
     rb-fsevent (0.10.3)
     rb-inotify (0.9.10)
       ffi (>= 0.5.0, < 2)
+    redis (3.3.5)
     responders (2.4.0)
       actionpack (>= 4.2.0, < 5.3)
       railties (>= 4.2.0, < 5.3)
@@ -140,10 +149,13 @@ PLATFORMS
 DEPENDENCIES
   byebug
   devise_token_auth
+  faker
   listen (>= 3.0.5, < 3.2)
   mysql2 (>= 0.3.18, < 0.6.0)
+  pry-rails
   puma (~> 3.7)
   rails (~> 5.1.6)
+  redis (~> 3.0)
   spring
   spring-watcher-listen (~> 2.0.0)
   tzinfo-data
