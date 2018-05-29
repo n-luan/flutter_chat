@@ -1,27 +1,29 @@
-class User {
-  String _email;
-  String _name;
-  String _avatar;
-  String _password;
-  User(this._email, this._password);
+import 'package:chat/src/models/user.dart';
 
-  User.map(dynamic obj) {
-    this._email = obj["email"];
+class Message {
+  String _text;
+  String _name;
+  String _password;
+  User _user;
+  Message(this._text, this._password);
+
+  Message.map(dynamic obj) {
+    this._text = obj["text"];
+    this._user = obj["user"];
     this._name = obj["name"];
-    this._avatar = obj["avatar"];
     this._password = obj["password"];
   }
 
-  String get email => _email;
+  String get text => _text;
   String get name => _name;
   String get password => _password;
-  String get avatar => _avatar;
+  User get user => _user;
 
   Map<String, dynamic> toMap() {
     var map = new Map<String, dynamic>();
-    map["email"] = _email;
+    map["text"] = _text;
     map["name"] = _name;
-    map["_avatar"] = _avatar;
+    map["user"] = _user;
     map["password"] = _password;
 
     return map;

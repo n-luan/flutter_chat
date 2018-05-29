@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:chat/src/models/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:chat/src/auth.dart';
 import 'package:chat/src/data/database_helper.dart';
@@ -49,7 +50,7 @@ class LoginScreenState extends State<LoginScreen>
   @override
   onAuthStateChanged(AuthState state) {
     if (state == AuthState.LOGGED_IN)
-      Navigator.of(_ctx).pushReplacementNamed("/home");
+      Navigator.of(_ctx).pushReplacementNamed("/chat");
   }
 
   @override
@@ -127,11 +128,11 @@ class LoginScreenState extends State<LoginScreen>
   }
 
   @override
-  void onLoginSuccess(User user) async {
-    _showSnackBar(user.toString());
+  void onLoginSuccess(Auth auth) async {
+    _showSnackBar(auth.toString());
     setState(() => _isLoading = false);
     var db = new DatabaseHelper();
-    await db.saveUser(user);
+    await db.saveAuth(auth);
     var authStateProvider = new AuthStateProvider();
     authStateProvider.notify(AuthState.LOGGED_IN);
   }
