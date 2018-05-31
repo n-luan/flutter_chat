@@ -1,4 +1,5 @@
 class User {
+  int _id;
   String _email;
   String _name;
   String _avatar;
@@ -6,12 +7,14 @@ class User {
   User(this._email, this._password);
 
   User.map(dynamic obj) {
+    this._id = obj["id"];
     this._email = obj["email"];
     this._name = obj["name"];
     this._avatar = obj["avatar"];
     this._password = obj["password"];
   }
 
+  int get id => _id;
   String get email => _email;
   String get name => _name;
   String get password => _password;
@@ -19,6 +22,7 @@ class User {
 
   Map<String, dynamic> toMap() {
     var map = new Map<String, dynamic>();
+    map["id"] = _id;
     map["email"] = _email;
     map["name"] = _name;
     map["_avatar"] = _avatar;

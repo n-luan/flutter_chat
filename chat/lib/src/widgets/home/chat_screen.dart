@@ -1,10 +1,14 @@
+import 'dart:async';
 // Copyright 2017, the Chromium project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:chat/src/data/database_helper.dart';
-import 'package:chat/src/models/auth.dart';
+import 'package:chat/src/models/message.dart';
+import 'package:chat/src/widgets/home/chat_message.dart';
+import 'package:chat/src/widgets/home/chat_screen_presenter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +37,7 @@ class FriendlychatApp extends StatelessWidget {
     final title = 'Room';
 
     return new MaterialApp(
-      title: "Friendlychat",
+      title: "Chat",
       theme: defaultTargetPlatform == TargetPlatform.iOS
           ? kIOSTheme
           : kDefaultTheme,
@@ -41,91 +45,6 @@ class FriendlychatApp extends StatelessWidget {
         title: title,
       ),
     );
-  }
-}
-
-class ChatMessage extends StatelessWidget {
-  ChatMessage(
-      {this.id,
-      this.current_user_id,
-      this.name,
-      this.text,
-      this.animationController});
-  final int id;
-  final int current_user_id;
-  final String text;
-  final String name;
-  final AnimationController animationController;
-  @override
-  Widget build(BuildContext context) {
-    if (current_user_id == id) {
-      return _buildRight(context);
-    } else {
-      return _build(context);
-    }
-  }
-
-  Widget _build(BuildContext context) {
-    return new SizeTransition(
-        sizeFactor: new CurvedAnimation(
-            parent: animationController, curve: Curves.easeOut),
-        axisAlignment: 0.0,
-        child: new Container(
-          margin: const EdgeInsets.symmetric(vertical: 10.0),
-          child: new Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              new Container(
-                margin: const EdgeInsets.only(right: 16.0),
-                child: new CircleAvatar(child: new Text(name[0])),
-              ),
-              new Expanded(
-                child: new Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    new Text(name, style: Theme.of(context).textTheme.title),
-                    new Container(
-                      margin: const EdgeInsets.only(top: 5.0),
-                      child: new Text(text),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ));
-  }
-
-  Widget _buildRight(BuildContext context) {
-    return new SizeTransition(
-        sizeFactor: new CurvedAnimation(
-            parent: animationController, curve: Curves.easeOut),
-        axisAlignment: 0.0,
-        child: new Container(
-          margin: const EdgeInsets.symmetric(vertical: 10.0),
-          child: new Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              new Expanded(
-                child: new Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    new Text(name, style: Theme.of(context).textTheme.title),
-                    new Container(
-                      margin: const EdgeInsets.only(top: 5.0, right: 4.0),
-                      child: new Text(text),
-                    ),
-                  ],
-                ),
-              ),
-              new Container(
-                margin: const EdgeInsets.only(right: 16.0, left: 2.0),
-                child: new CircleAvatar(child: new Text(name[0])),
-              ),
-            ],
-          ),
-        ));
   }
 }
 
@@ -138,24 +57,60 @@ class ChatScreen extends StatefulWidget {
   State createState() => new ChatScreenState();
 }
 
-class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
+class ChatScreenState extends State<ChatScreen>
+    with TickerProviderStateMixin
+    implements ChatScreenContract {
   final List<ChatMessage> _messages = <ChatMessage>[];
   final TextEditingController _textController = new TextEditingController();
 
   bool _isComposing = false;
   int current_user_id;
   WebSocketChannel channel;
+  ChatScreenPresenter _presenter;
+
+  ScrollController _scrollController = new ScrollController();
+  bool isPerformingRequest = false;
+
+  ChatScreenState() {
+    _presenter = new ChatScreenPresenter(this);
+  }
+
+  void onLoadMessageSuccess(ListMessage listMessage) {
+    for (var message in listMessage.messages) {
+      _messages.add(new ChatMessage(
+        current_user_id: current_user_id,
+        id: message.user.id,
+        name: message.user.name,
+        text: message.text,
+      ));
+    }
+    setState(() {});
+  }
+
+  void loadMoreMessages() {}
+  void onLoadMessageError(String errorMessage) {}
 
   @override
   void initState() {
     super.initState();
     setupChannel();
-    // widget.channel.sink.add(json.encode({
-    //   "command": "subscribe",
-    //   "identifier": "{\"channel\":\"RoomChannel\"}"
-    // }));
+    _presenter.loadMessages();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        _getMoreData();
+      }
+    });
+  }
 
-    // widget.channel.stream.listen(onData);
+  _getMoreData() async {
+    if (!isPerformingRequest) {
+      setState(() => isPerformingRequest = true);
+      _presenter.loadMessages();
+      setState(() {
+        isPerformingRequest = false;
+      });
+    }
   }
 
   void setupChannel() async {
@@ -186,34 +141,18 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       _isComposing = false;
     });
 
-    // channel.sink.add(json.encode({
-    //   "command": "subscribe",
-    //   "identifier": "{\"channel\":\"RoomChannel\"}"
-    // }));
-
     channel.sink.add(json.encode({
       "command": "message",
       "identifier": "{\"channel\":\"RoomChannel\"}",
       "data": "{\"action\":\"speak\", \"message\":\"${text}\"}"
     }));
-
-    // ChatMessage message = new ChatMessage(
-    //   text: text,
-    //   animationController: new AnimationController(
-    //     duration: new Duration(milliseconds: 700),
-    //     vsync: this,
-    //   ),
-    // );
-    // setState(() {
-    //   _messages.insert(0, message);
-    // });
-    // message.animationController.forward();
   }
 
   void dispose() {
     for (ChatMessage message in _messages)
       message.animationController.dispose();
     widget.channel.sink.close();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -249,9 +188,12 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       setState(() {
         _messages.insert(0, message);
       });
+      _scrollController.jumpTo(0.0);
       message.animationController.forward();
     }
   }
+
+  Future scrollToComment(ChatMessage chatMessage) async {}
 
   Widget _buildTextComposer() {
     return new IconTheme(
@@ -305,12 +247,14 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       body: new Container(
           child: new Column(children: <Widget>[
             new Flexible(
-                child: new ListView.builder(
-              padding: new EdgeInsets.all(8.0),
-              reverse: true,
-              itemBuilder: (_, int index) => _messages[index],
-              itemCount: _messages.length,
-            )),
+              child: new ListView.builder(
+                padding: new EdgeInsets.all(8.0),
+                controller: _scrollController,
+                reverse: true,
+                itemBuilder: (_, int index) => _messages[index],
+                itemCount: _messages.length,
+              ),
+            ),
             new Divider(height: 1.0),
             new Container(
               decoration: new BoxDecoration(color: Theme.of(context).cardColor),
