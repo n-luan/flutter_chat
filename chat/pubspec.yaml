@@ -11,6 +11,7 @@ dependencies:
   uuid: 1.0.0
   sqflite: ^0.7.1
   path_provider: ^0.3.1
+  firebase_messaging: ^1.0.1
   # flutter_localstorage:
   #   git: git://github.com/lakexyde/flutter_localstorage.git
 dev_dependencies:

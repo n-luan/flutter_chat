@@ -4,8 +4,9 @@ import 'package:chat/src/models/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:chat/src/auth.dart';
 import 'package:chat/src/data/database_helper.dart';
-import 'package:chat/src/models/user.dart';
 import 'package:chat/src/widgets/login/login_screen_presenter.dart';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -25,11 +26,23 @@ class LoginScreenState extends State<LoginScreen>
   String _email, _password;
 
   LoginScreenPresenter _presenter;
+  final FirebaseMessaging _firebaseMessaging = new FirebaseMessaging();
 
   LoginScreenState() {
     _presenter = new LoginScreenPresenter(this);
     var authStateProvider = new AuthStateProvider();
     authStateProvider.subscribe(this);
+  }
+  @override
+  void initState() {
+    super.initState();
+    _firebaseMessaging.configure();
+    _firebaseMessaging.requestNotificationPermissions(
+        const IosNotificationSettings(sound: true, badge: true, alert: true));
+    _firebaseMessaging.onIosSettingsRegistered
+        .listen((IosNotificationSettings settings) {
+      print("Settings registered: $settings");
+    });
   }
 
   void _submit() {
@@ -38,7 +51,13 @@ class LoginScreenState extends State<LoginScreen>
     if (form.validate()) {
       setState(() => _isLoading = true);
       form.save();
-      _presenter.doLogin(_email, _password);
+      _firebaseMessaging.getToken().then((String token) {
+        assert(token != null);
+        print(token);
+        setState(() {
+          _presenter.doLogin(_email, _password, token);
+        });
+      });
     }
   }
 

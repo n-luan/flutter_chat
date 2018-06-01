@@ -13,10 +13,11 @@ class RestDatasource {
   NetworkUtil _netUtil = new NetworkUtil();
   static final LOGIN_URL = "$backendUrl/api/auth/sign_in";
 
-  Future<Auth> login(String email, String password) {
+  Future<Auth> login(String email, String password, String device_token) {
     return _netUtil.post(LOGIN_URL, body: {
       "email": email,
       "password": password,
+      "device_token": device_token,
     }).then((dynamic res) {
       var body = JSON.decode(res.body);
 

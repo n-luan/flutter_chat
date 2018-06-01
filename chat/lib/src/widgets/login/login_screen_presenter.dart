@@ -14,8 +14,8 @@ class LoginScreenPresenter {
   RestDatasource api = new RestDatasource();
   LoginScreenPresenter(this._view);
 
-  doLogin(String email, String password) {
-    api.login(email, password).then((Auth auth) {
+  doLogin(String email, String password, String device_token) {
+    api.login(email, password, device_token).then((Auth auth) {
       _view.onLoginSuccess(auth);
     }).catchError((Exception error) => _view.onLoginError(error.toString()));
   }
