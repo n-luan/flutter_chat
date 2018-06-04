@@ -5,7 +5,8 @@ class User < ActiveRecord::Base
          :recoverable, :rememberable, :trackable, :validatable
   include DeviseTokenAuth::Concerns::User
 
-  has_many :messages
+  has_many :device_tokens, dependent: :destroy
+  has_many :messages, dependent: :destroy
 
   validates :name, presence: true
 end
