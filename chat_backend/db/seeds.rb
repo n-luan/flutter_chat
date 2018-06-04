@@ -6,5 +6,7 @@
 #   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
 #   Character.create(name: 'Luke', movie: movies.first)
 10.times do |n|
-  User.create name: Faker::LeagueOfLegends.champion, email: "user#{n}@example.com", password: "123456789"
+  user = User.create name: Faker::LeagueOfLegends.champion, email: "user#{n}@example.com",
+    password: "123456789"
+  user.create_user_room read_at: Time.zone.now
 end

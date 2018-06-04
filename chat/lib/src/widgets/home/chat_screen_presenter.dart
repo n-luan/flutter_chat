@@ -1,9 +1,8 @@
 import 'dart:developer';
 
 import 'package:chat/src/data/rest_ds.dart';
-import 'package:chat/src/models/auth.dart';
 import 'package:chat/src/models/message.dart';
-import 'package:chat/src/models/user.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 
 abstract class ChatScreenContract {
   void onLoadMessageSuccess(ListMessage messages);
@@ -20,8 +19,23 @@ class ChatScreenPresenter {
       if (current_page < messages.total_pages) {
         current_page++;
       }
+
+      updateBadger();
       _view.onLoadMessageSuccess(messages);
     }).catchError(
         (Exception error) => _view.onLoadMessageError(error.toString()));
+  }
+
+  void readAll() {
+    api.readAll().then((dynamic _) {
+      updateBadger();
+    });
+  }
+
+  void updateBadger() async {
+    if (await FlutterAppBadger.isAppBadgeSupported()) {
+      // FlutterAppBadger.updateBadgeCount(1);
+      FlutterAppBadger.removeBadge();
+    }
   }
 }
