@@ -1,21 +1,22 @@
 import 'dart:convert';
 
-import 'dart:developer';
-
 class Auth {
   int _id;
   String _email;
   String _name;
   String _avatar;
 
+  String _deviceToken;
   String _accessToken;
   String _uid;
   String _clientId;
   Auth(this._uid, this._accessToken);
 
-  Auth.map(dynamic response) {
+  Auth.map(dynamic response, String deviceToken) {
     var obj = JSON.decode(response.body)["data"];
     var headers = response.headers;
+
+    this._deviceToken = deviceToken;
 
     this._id = obj["id"];
     this._email = obj["email"];
@@ -34,6 +35,7 @@ class Auth {
 
     this._uid = obj["uid"];
     this._accessToken = obj["accessToken"];
+    this._deviceToken = obj["deviceToken"];
     this._clientId = obj["clientId"];
   }
 
@@ -43,6 +45,7 @@ class Auth {
   String get avatar => _avatar;
   String get uid => _uid;
   String get accessToken => _accessToken;
+  String get deviceToken => _deviceToken;
   String get clientId => _clientId;
 
   Map<String, dynamic> toMap() {
@@ -53,6 +56,7 @@ class Auth {
     map["avatar"] = _avatar;
     map["uid"] = _uid;
     map["accessToken"] = _accessToken;
+    map["deviceToken"] = _deviceToken;
     map["clientId"] = _clientId;
 
     return map;

@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:developer';
 import 'package:http/http.dart' as http;
 
 class NetworkUtil {
@@ -9,17 +7,9 @@ class NetworkUtil {
   NetworkUtil.internal();
   factory NetworkUtil() => _instance;
 
-  final JsonDecoder _decoder = new JsonDecoder();
-
   Future<http.Response> get(String url, Map headers) {
     return http.get(url, headers: headers).then((http.Response response) {
-      final String res = response.body;
-      final int statusCode = response.statusCode;
-
-      if (statusCode < 200 || statusCode > 400 || json == null) {
-        throw new Exception("Error while fetching data");
-      }
-      return response;
+      return handleResponse(response);
     });
   }
 
@@ -27,13 +17,18 @@ class NetworkUtil {
     return http
         .post(url, body: body, headers: headers, encoding: encoding)
         .then((http.Response response) {
-      final String res = response.body;
-      final int statusCode = response.statusCode;
+      return handleResponse(response);
+    });
+  }
 
-      if (statusCode < 200 || statusCode >= 400 || json == null) {
-        throw new Exception("Error while fetching data");
-      }
-      return response;
+  Future<http.Response> delete(String url, {Map headers}) {
+    return http
+        .delete(
+      url,
+      headers: headers,
+    )
+        .then((http.Response response) {
+      return handleResponse(response);
     });
   }
 
@@ -41,13 +36,19 @@ class NetworkUtil {
     return http
         .put(url, body: body, headers: headers, encoding: encoding)
         .then((http.Response response) {
-      final String res = response.body;
-      final int statusCode = response.statusCode;
-
-      if (statusCode < 200 || statusCode >= 400 || json == null) {
-        throw new Exception("Error while fetching data");
-      }
-      return response;
+      return handleResponse(response);
     });
+  }
+
+  http.Response handleResponse(http.Response response) {
+    final int statusCode = response.statusCode;
+
+    if (statusCode == 401) {
+      throw new Exception("Unauthorized");
+    } else if (statusCode != 200) {
+      throw new Exception("Error while fetching data");
+    }
+
+    return response;
   }
 }
