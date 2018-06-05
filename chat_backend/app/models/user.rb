@@ -7,6 +7,11 @@ class User < ActiveRecord::Base
 
   has_many :device_tokens, dependent: :destroy
   has_many :messages, dependent: :destroy
+  has_one :user_room, dependent: :destroy
 
   validates :name, presence: true
+
+  def unread_count
+    Message.unread(user_room.read_at, id).size
+  end
 end

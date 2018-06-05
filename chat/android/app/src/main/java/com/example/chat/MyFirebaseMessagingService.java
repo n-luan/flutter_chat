@@ -25,21 +25,24 @@ import android.app.ActivityManager.RecentTaskInfo;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.ActivityManager.RunningTaskInfo;
+import android.app.KeyguardManager;
 import android.support.v4.app.TaskStackBuilder;
+
+import me.leolin.shortcutbadger.ShortcutBadger;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
   @Override
   public void onMessageReceived(RemoteMessage remoteMessage) {
     super.onMessageReceived(remoteMessage);
-    if (!isForeground("com.example.chat")) {
+    if (isLocked() || !isRunning("com.example.chat")) {
       RemoteMessage.Notification notification = remoteMessage.getNotification();
       Map<String, String> data = remoteMessage.getData();
       sendNotification(notification, data);
     }
   }
 
-  public boolean isForeground(String myPackage) {
+  public boolean isRunning(String myPackage) {
     ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
     List<ActivityManager.RunningTaskInfo> runningTaskInfo = manager.getRunningTasks(1);
     ComponentName componentInfo = runningTaskInfo.get(0).topActivity;
@@ -47,6 +50,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     System.out.println(componentInfo.getClassName());
 
     return componentInfo.getPackageName().equals(myPackage);
+  }
+
+  public boolean isLocked() {
+    KeyguardManager myKM = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+    return myKM.inKeyguardRestrictedInputMode();
   }
 
   private void sendNotification(RemoteMessage.Notification notification, Map<String, String> data) {
@@ -67,19 +75,27 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
       // int id = Integer.parseInt(data.get("id"));
       int id = 0;
       String text = data.get("text");
+      int unread_count = Integer.parseInt(data.get("unread_count"));
 
       NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, "channel_id")
-          .setContentTitle(name).setContentText(text).setAutoCancel(true)
-          .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-          .setDefaults(Notification.DEFAULT_VIBRATE).setSmallIcon(R.mipmap.ic_launcher).setContentIntent(pendingIntent)
-          .setPriority(Notification.PRIORITY_MAX).setContentInfo(text).setLargeIcon(icon).setColor(Color.BLUE)
-          .setLights(Color.BLUE, 1000, 300);
+      .setContentTitle(name).setContentText(text).setAutoCancel(true)
+      .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+      .setDefaults(Notification.DEFAULT_VIBRATE).setSmallIcon(R.mipmap.ic_launcher).setContentIntent(pendingIntent)
+      .setPriority(Notification.PRIORITY_MAX).setContentInfo(text).setLargeIcon(icon).setColor(Color.BLUE)
+      .setLights(Color.GREEN, 1000, 300);
 
       NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-      notificationManager.notify(id, notificationBuilder.build());
+
+      Notification _notification = notificationBuilder.build();
+
+      ShortcutBadger.applyCount(getApplicationContext(), unread_count);
+      ShortcutBadger.applyNotification(getApplicationContext(), _notification, unread_count);
+
+      notificationManager.notify(id, _notification);
 
     } catch (Exception e) {
       // TODO: handle exception
+      System.out.println(e);
     }
   }
 }

@@ -12,6 +12,7 @@ import 'package:chat/src/widgets/home/chat_screen_presenter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -67,6 +68,7 @@ class ChatScreenState extends State<ChatScreen>
   int current_user_id;
   WebSocketChannel channel;
   ChatScreenPresenter _presenter;
+  AppLifecycleState _lastLifecyleState;
 
   ScrollController _scrollController = new ScrollController();
   bool isPerformingRequest = false;
@@ -93,6 +95,7 @@ class ChatScreenState extends State<ChatScreen>
   @override
   void initState() {
     super.initState();
+    handleAppLifecycleState();
     setupChannel();
     _presenter.loadMessages();
     _scrollController.addListener(() {
@@ -103,7 +106,31 @@ class ChatScreenState extends State<ChatScreen>
     });
   }
 
-  _getMoreData() async {
+  void handleAppLifecycleState() {
+    SystemChannels.lifecycle.setMessageHandler((msg) {
+      debugPrint('SystemChannels> $msg');
+      setState(() {
+        switch (msg) {
+          case "AppLifecycleState.paused":
+            _lastLifecyleState = AppLifecycleState.paused;
+            break;
+          case "AppLifecycleState.inactive":
+            _lastLifecyleState = AppLifecycleState.inactive;
+            break;
+          case "AppLifecycleState.resumed":
+            _lastLifecyleState = AppLifecycleState.resumed;
+            _presenter.readAll();
+            break;
+          case "AppLifecycleState.suspending":
+            _lastLifecyleState = AppLifecycleState.suspending;
+            break;
+          default:
+        }
+      });
+    });
+  }
+
+  void _getMoreData() async {
     if (!isPerformingRequest) {
       setState(() => isPerformingRequest = true);
       _presenter.loadMessages();
@@ -190,6 +217,10 @@ class ChatScreenState extends State<ChatScreen>
       });
       _scrollController.jumpTo(0.0);
       message.animationController.forward();
+
+      if (_lastLifecyleState == AppLifecycleState.resumed || _lastLifecyleState == null) {
+        _presenter.readAll();
+      }
     }
   }
 

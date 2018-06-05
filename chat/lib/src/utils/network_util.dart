@@ -11,8 +11,8 @@ class NetworkUtil {
 
   final JsonDecoder _decoder = new JsonDecoder();
 
-  Future<http.Response> get(String url) {
-    return http.get(url).then((http.Response response) {
+  Future<http.Response> get(String url, Map headers) {
+    return http.get(url, headers: headers).then((http.Response response) {
       final String res = response.body;
       final int statusCode = response.statusCode;
 
@@ -26,6 +26,20 @@ class NetworkUtil {
   Future<http.Response> post(String url, {Map headers, body, encoding}) {
     return http
         .post(url, body: body, headers: headers, encoding: encoding)
+        .then((http.Response response) {
+      final String res = response.body;
+      final int statusCode = response.statusCode;
+
+      if (statusCode < 200 || statusCode >= 400 || json == null) {
+        throw new Exception("Error while fetching data");
+      }
+      return response;
+    });
+  }
+
+  Future<http.Response> put(String url, {Map headers, body, encoding}) {
+    return http
+        .put(url, body: body, headers: headers, encoding: encoding)
         .then((http.Response response) {
       final String res = response.body;
       final int statusCode = response.statusCode;

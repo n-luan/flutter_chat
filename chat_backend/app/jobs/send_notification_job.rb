@@ -11,14 +11,17 @@ class SendNotificationJob < ApplicationJob
   def perform(message_id)
     message = Message.find message_id
 
-    options = { data: {
-      action: :chat,
-      id: message.id,
-      user: { id: message.user_id, name: message.user_name },
-      text: message.text
-    } }
-
-    device_tokens = DeviceToken.pluck(:token)
-    fcm.send device_tokens, options
+    User.includes(:device_tokens).all.each do |user|
+      options = { data: {
+        action: :chat,
+        unread_count: user.unread_count,
+        id: message.id,
+        text: message.text,
+        user: { id: message.user_id, name: message.user_name }
+      } }
+      device_tokens = user.device_tokens.pluck(:token)
+      puts "User #{user.id}: Devices: #{device_tokens.count} Unread: #{user.unread_count}"
+      fcm.send device_tokens, options
+    end
   end
 end
