@@ -1,19 +1,12 @@
-import 'dart:ui';
-
-import 'package:chat/src/models/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:chat/src/auth.dart';
-import 'package:chat/src/data/database_helper.dart';
 import 'package:chat/src/widgets/login/login_screen_presenter.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() {
-    // TODO: implement createState
-    return new LoginScreenState();
-  }
+  State<StatefulWidget> createState() => new LoginScreenState();
 }
 
 class LoginScreenState extends State<LoginScreen>
@@ -35,7 +28,6 @@ class LoginScreenState extends State<LoginScreen>
   }
   @override
   void initState() {
-    super.initState();
     _firebaseMessaging.configure();
     _firebaseMessaging.requestNotificationPermissions(
         const IosNotificationSettings(sound: true, badge: true, alert: true));
@@ -43,6 +35,7 @@ class LoginScreenState extends State<LoginScreen>
         .listen((IosNotificationSettings settings) {
       print("Settings registered: $settings");
     });
+    super.initState();
   }
 
   void _submit() {
@@ -67,9 +60,11 @@ class LoginScreenState extends State<LoginScreen>
   }
 
   @override
-  onAuthStateChanged(AuthState state) {
-    if (state == AuthState.LOGGED_IN)
-      Navigator.of(_ctx).pushReplacementNamed("/chat");
+  onAuthStateChanged(BuildContext _context, AuthState state) {
+    if (state == AuthState.LOGGED_IN) {
+      var ctx = (_context == null) ? context : _context;
+      Navigator.of(ctx).pushReplacementNamed("/chat");
+    }
   }
 
   @override
@@ -83,7 +78,7 @@ class LoginScreenState extends State<LoginScreen>
     var loginForm = new Column(
       children: <Widget>[
         new Text(
-          "Login App",
+          "Login",
           textScaleFactor: 2.0,
         ),
         new Form(
@@ -96,10 +91,10 @@ class LoginScreenState extends State<LoginScreen>
                   onSaved: (val) => _email = val,
                   validator: (val) {
                     return val.length < 10
-                        ? "Username must have atleast 10 chars"
+                        ? "User name must have atleast 10 chars"
                         : null;
                   },
-                  decoration: new InputDecoration(labelText: "Username"),
+                  decoration: new InputDecoration(labelText: "User name"),
                 ),
               ),
               new Padding(
@@ -107,6 +102,7 @@ class LoginScreenState extends State<LoginScreen>
                 child: new TextFormField(
                   onSaved: (val) => _password = val,
                   decoration: new InputDecoration(labelText: "Password"),
+                  obscureText: true,
                 ),
               ),
             ],
@@ -123,17 +119,10 @@ class LoginScreenState extends State<LoginScreen>
       body: new Container(
         decoration: new BoxDecoration(),
         child: new Center(
-          child: new ClipRect(
-            child: new BackdropFilter(
-              filter: new ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-              child: new Container(
-                child: loginForm,
-                height: 300.0,
-                width: 300.0,
-                decoration: new BoxDecoration(
-                    color: Colors.grey.shade200.withOpacity(0.5)),
-              ),
-            ),
+          child: new Container(
+            child: loginForm,
+            height: 300.0,
+            width: 300.0,
           ),
         ),
       ),
@@ -147,12 +136,9 @@ class LoginScreenState extends State<LoginScreen>
   }
 
   @override
-  void onLoginSuccess(Auth auth) async {
-    _showSnackBar(auth.toString());
+  void onLoginSuccess() {
     setState(() => _isLoading = false);
-    var db = new DatabaseHelper();
-    await db.saveAuth(auth);
     var authStateProvider = new AuthStateProvider();
-    authStateProvider.notify(AuthState.LOGGED_IN);
+    authStateProvider.notify(context, AuthState.LOGGED_IN);
   }
 }

@@ -17,6 +17,7 @@ class SendNotificationJob < ApplicationJob
         unread_count: user.unread_count,
         id: message.id,
         text: message.text,
+        created_at: message.created_at.to_s,
         user: { id: message.user_id, name: message.user_name }
       } }
       device_tokens = user.device_tokens.pluck(:token)

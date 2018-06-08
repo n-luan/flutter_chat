@@ -1,11 +1,9 @@
-import 'dart:developer';
-
+import 'package:chat/src/data/database_helper.dart';
 import 'package:chat/src/data/rest_ds.dart';
 import 'package:chat/src/models/auth.dart';
-import 'package:chat/src/models/user.dart';
 
 abstract class LoginScreenContract {
-  void onLoginSuccess(Auth user);
+  void onLoginSuccess();
   void onLoginError(String errorTxt);
 }
 
@@ -14,9 +12,18 @@ class LoginScreenPresenter {
   RestDatasource api = new RestDatasource();
   LoginScreenPresenter(this._view);
 
-  doLogin(String email, String password, String device_token) {
-    api.login(email, password, device_token).then((Auth auth) {
-      _view.onLoginSuccess(auth);
-    }).catchError((Exception error) => _view.onLoginError(error.toString()));
+  doLogin(String email, String password, String deviceToken) {
+    api.login(email, password, deviceToken).then((Auth auth) {
+      var db = new DatabaseHelper();
+      db.saveAuth(auth).then((_) {
+        _view.onLoginSuccess();
+      });
+    }, onError: (e) {
+      handleError(e);
+    }).catchError(handleError);
+  }
+
+  handleError(Exception error) {
+    _view.onLoginError(error.toString());
   }
 }

@@ -62,12 +62,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     try {
       // Create an Intent for the activity you want to start
-      Intent resultIntent = new Intent(this, MainActivity.class);
-      // Create the TaskStackBuilder and add the intent, which inflates the back stack
-      TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-      stackBuilder.addNextIntentWithParentStack(resultIntent);
-      // Get the PendingIntent containing the entire back stack
-      PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+      Intent resultIntent = new Intent(this, MainActivity.class).setAction(Intent.ACTION_MAIN)
+          .addCategory("FLUTTER_NOTIFICATION_CLICK")
+          .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+      PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
       JSONObject jo = new JSONObject(data.get("user"));
 
@@ -78,11 +76,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
       int unread_count = Integer.parseInt(data.get("unread_count"));
 
       NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, "channel_id")
-      .setContentTitle(name).setContentText(text).setAutoCancel(true)
-      .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-      .setDefaults(Notification.DEFAULT_VIBRATE).setSmallIcon(R.mipmap.ic_launcher).setContentIntent(pendingIntent)
-      .setPriority(Notification.PRIORITY_MAX).setContentInfo(text).setLargeIcon(icon).setColor(Color.BLUE)
-      .setLights(Color.GREEN, 1000, 300);
+          .setContentTitle(name).setContentText(text).setAutoCancel(true)
+          .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+          .setDefaults(Notification.DEFAULT_VIBRATE).setSmallIcon(R.mipmap.ic_launcher).setContentIntent(pendingIntent)
+          .setPriority(Notification.PRIORITY_MAX).setContentInfo(text).setLargeIcon(icon).setColor(Color.BLUE)
+          .setLights(Color.GREEN, 1000, 300);
 
       NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 

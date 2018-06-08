@@ -1,9 +1,10 @@
 import 'package:chat/src/data/database_helper.dart';
+import 'package:flutter/material.dart';
 
 enum AuthState { LOGGED_IN, LOGGED_OUT }
 
 abstract class AuthStateListener {
-  void onAuthStateChanged(AuthState state);
+  void onAuthStateChanged(BuildContext context, AuthState state);
 }
 
 // A naive implementation of Observer/Subscriber Pattern. Will do for now.
@@ -22,9 +23,9 @@ class AuthStateProvider {
     var db = new DatabaseHelper();
     var isLoggedIn = await db.isLoggedIn();
     if (isLoggedIn)
-      notify(AuthState.LOGGED_IN);
+      notify(null, AuthState.LOGGED_IN);
     else
-      notify(AuthState.LOGGED_OUT);
+      notify(null, AuthState.LOGGED_OUT);
   }
 
   void subscribe(AuthStateListener listener) {
@@ -37,7 +38,8 @@ class AuthStateProvider {
     }
   }
 
-  void notify(AuthState state) {
-    _subscribers.forEach((AuthStateListener s) => s.onAuthStateChanged(state));
+  void notify(BuildContext context, AuthState state) {
+    _subscribers
+        .forEach((AuthStateListener s) => s.onAuthStateChanged(context, state));
   }
 }
