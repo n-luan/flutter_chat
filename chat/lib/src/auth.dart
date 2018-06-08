@@ -6,7 +6,6 @@ abstract class AuthStateListener {
   void onAuthStateChanged(AuthState state);
 }
 
-// A naive implementation of Observer/Subscriber Pattern. Will do for now.
 class AuthStateProvider {
   static final AuthStateProvider _instance = new AuthStateProvider.internal();
 
@@ -32,9 +31,7 @@ class AuthStateProvider {
   }
 
   void dispose(AuthStateListener listener) {
-    for (var l in _subscribers) {
-      if (l == listener) _subscribers.remove(l);
-    }
+    _subscribers.removeWhere((l) => l == listener);
   }
 
   void notify(AuthState state) {

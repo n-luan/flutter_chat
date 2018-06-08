@@ -36,4 +36,24 @@ class Api::Auth::SessionsController < DeviseTokenAuth::SessionsController
       render_create_error_bad_credentials
     end
   end
+
+  def destroy
+    # remove auth instance variables so that after_action does not run
+    user = remove_instance_variable(:@resource) if @resource
+    client_id = remove_instance_variable(:@client_id) if @client_id
+    remove_instance_variable(:@token) if @token
+
+    if user && client_id && user.tokens[client_id]
+      user.tokens.delete(client_id)
+      user.save!
+
+      DeviceToken.where(token: request.headers["HTTP_DEVICE_TOKEN"]).destroy_all
+
+      yield user if block_given?
+
+      render_destroy_success
+    else
+      render_destroy_error
+    end
+  end
 end

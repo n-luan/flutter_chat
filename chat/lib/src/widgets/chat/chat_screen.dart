@@ -1,59 +1,21 @@
 import 'dart:async';
-// Copyright 2017, the Chromium project authors.  Please see the AUTHORS file
-// for details. All rights reserved. Use of this source code is governed by a
-// BSD-style license that can be found in the LICENSE file.
 import 'dart:convert';
-import 'dart:developer';
 
+import 'package:chat/src/constant.dart';
 import 'package:chat/src/data/database_helper.dart';
 import 'package:chat/src/models/message.dart';
-import 'package:chat/src/widgets/home/chat_message.dart';
-import 'package:chat/src/widgets/home/chat_screen_presenter.dart';
+import 'package:chat/src/widgets/chat/chat_message.dart';
+import 'package:chat/src/widgets/chat/chat_screen_presenter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-
-void main() {
-  runApp(new FriendlychatApp());
-}
-
-final ThemeData kIOSTheme = new ThemeData(
-  primarySwatch: Colors.orange,
-  primaryColor: Colors.grey[100],
-  primaryColorBrightness: Brightness.light,
-);
-
-final ThemeData kDefaultTheme = new ThemeData(
-  primarySwatch: Colors.blue,
-  accentColor: Colors.orangeAccent[400],
-);
-
-class FriendlychatApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final title = 'Room';
-
-    return new MaterialApp(
-      title: "Chat",
-      theme: defaultTargetPlatform == TargetPlatform.iOS
-          ? kIOSTheme
-          : kDefaultTheme,
-      home: new ChatScreen(
-        title: title,
-      ),
-    );
-  }
-}
 
 class ChatScreen extends StatefulWidget {
-  final String title;
-  final WebSocketChannel channel;
+  ChatScreen({Key key}) : super(key: key);
 
-  ChatScreen({Key key, @required this.title, this.channel}) : super(key: key);
   @override
   State createState() => new ChatScreenState();
 }
@@ -66,7 +28,7 @@ class ChatScreenState extends State<ChatScreen>
 
   bool _isComposing = false;
   int current_user_id;
-  WebSocketChannel channel;
+  IOWebSocketChannel channel;
   ChatScreenPresenter _presenter;
   AppLifecycleState _lastLifecyleState;
 
@@ -78,26 +40,33 @@ class ChatScreenState extends State<ChatScreen>
   }
 
   void onLoadMessageSuccess(ListMessage listMessage) {
-    for (var message in listMessage.messages) {
-      _messages.add(new ChatMessage(
-        current_user_id: current_user_id,
-        id: message.user.id,
-        name: message.user.name,
-        text: message.text,
-      ));
-    }
-    setState(() {});
+    setState(() {
+      for (var message in listMessage.messages) {
+        _messages.add(new ChatMessage(
+          current_user_id: current_user_id,
+          message: message,
+        ));
+      }
+    });
   }
 
-  void loadMoreMessages() {}
-  void onLoadMessageError(String errorMessage) {}
+  void onLoadMessageError(String errorMessage) {
+    debugPrint(errorMessage);
+  }
+
+  void onLogoutSuccess() {
+    Navigator.of(context).pushReplacementNamed("/login");
+  }
 
   @override
   void initState() {
     super.initState();
     handleAppLifecycleState();
     setupChannel();
-    _presenter.loadMessages();
+    debugPrint("Chat init");
+    if (_messages.length == 0) {
+      _presenter.loadMessages();
+    }
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
           _scrollController.position.maxScrollExtent) {
@@ -130,7 +99,7 @@ class ChatScreenState extends State<ChatScreen>
     });
   }
 
-  void _getMoreData() async {
+  void _getMoreData() {
     if (!isPerformingRequest) {
       setState(() => isPerformingRequest = true);
       _presenter.loadMessages();
@@ -140,26 +109,23 @@ class ChatScreenState extends State<ChatScreen>
     }
   }
 
-  void setupChannel() async {
+  void setupChannel() {
     var db = new DatabaseHelper();
-    var auth = await db.getAuth();
-
-    setState(() {
+    db.getAuth().then((auth) {
       current_user_id = auth.id;
-      channel = new IOWebSocketChannel.connect('ws://192.168.0.24:3000/cable',
-          headers: {
-            "UID": auth.uid,
-            "ACCESS_TOKEN": auth.accessToken,
-            "CLIENT_ID": auth.clientId
-          });
+      channel = new IOWebSocketChannel.connect(socketUrl, headers: {
+        "UID": auth.uid,
+        "ACCESS_TOKEN": auth.accessToken,
+        "CLIENT_ID": auth.clientId
+      });
+
+      channel.sink.add(json.encode({
+        "command": "subscribe",
+        "identifier": "{\"channel\":\"RoomChannel\"}"
+      }));
+
+      channel.stream.listen(onData);
     });
-
-    channel.sink.add(json.encode({
-      "command": "subscribe",
-      "identifier": "{\"channel\":\"RoomChannel\"}"
-    }));
-
-    channel.stream.listen(onData);
   }
 
   void _handleSubmitted(String text) {
@@ -177,10 +143,17 @@ class ChatScreenState extends State<ChatScreen>
 
   void dispose() {
     for (ChatMessage message in _messages)
-      message.animationController.dispose();
-    widget.channel.sink.close();
+      if (message.animationController != null)
+        message.animationController.dispose();
+
+    channel.sink.close();
     _scrollController.dispose();
     super.dispose();
+    print("Dispose Chat");
+  }
+
+  void logout() {
+    _presenter.logout();
   }
 
   void onData(_data) {
@@ -189,6 +162,8 @@ class ChatScreenState extends State<ChatScreen>
       case "ping":
         break;
       case "welcome":
+        print("Welcome");
+        break;
       case "confirm_subscription":
         print("Connected");
         break;
@@ -198,15 +173,11 @@ class ChatScreenState extends State<ChatScreen>
 
     if (data["identifier"] == "{\"channel\":\"RoomChannel\"}" &&
         data["type"] != "confirm_subscription") {
-      var id = data["message"]["message"]["user"]["id"];
-      var name = data["message"]["message"]["user"]["name"];
-      var text = data["message"]["message"]["text"];
+      var msg = Message.map(data["message"]["message"]);
 
       ChatMessage message = new ChatMessage(
         current_user_id: current_user_id,
-        id: id,
-        name: name,
-        text: text,
+        message: msg,
         animationController: new AnimationController(
           duration: new Duration(milliseconds: 700),
           vsync: this,
@@ -218,13 +189,12 @@ class ChatScreenState extends State<ChatScreen>
       _scrollController.jumpTo(0.0);
       message.animationController.forward();
 
-      if (_lastLifecyleState == AppLifecycleState.resumed || _lastLifecyleState == null) {
+      if (_lastLifecyleState == AppLifecycleState.resumed ||
+          _lastLifecyleState == null) {
         _presenter.readAll();
       }
     }
   }
-
-  Future scrollToComment(ChatMessage chatMessage) async {}
 
   Widget _buildTextComposer() {
     return new IconTheme(
@@ -272,9 +242,16 @@ class ChatScreenState extends State<ChatScreen>
   Widget build(BuildContext context) {
     return new Scaffold(
       appBar: new AppBar(
-          title: new Text("Room"),
-          elevation:
-              Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0),
+        title: new Text("Room"),
+        elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
+        actions: <Widget>[
+          new IconButton(
+            icon: new Icon(Icons.exit_to_app),
+            tooltip: 'Logout',
+            onPressed: logout,
+          )
+        ],
+      ),
       body: new Container(
           child: new Column(children: <Widget>[
             new Flexible(

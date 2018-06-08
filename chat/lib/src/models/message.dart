@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:chat/src/models/user.dart';
 
 class Message {
@@ -14,7 +12,7 @@ class Message {
     this._text = obj["text"];
     this._user = new User.map(obj["user"]);
     this._name = obj["name"];
-    this._created_at = DateTime.parse(obj["created_at"]);
+    this._created_at = DateTime.tryParse(obj["created_at"]);
   }
 
   int get id => _id;
